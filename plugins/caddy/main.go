@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"time"
 )
 
 type key string
@@ -40,7 +41,7 @@ type SouinCaddyPlugin struct {
 	bufPool       sync.Pool
 	Headers       []string                           `json:"headers,omitempty"`
 	Olric         configurationtypes.CacheProvider   `json:"olric,omitempty"`
-	TTL           string                             `json:"ttl,omitempty"`
+	TTL           time.Duration                      `json:"ttl,omitempty"`
 	ykeys         map[string]configurationtypes.YKey `json:"ykeys,omitempty"`
 }
 
@@ -137,7 +138,7 @@ func (s *SouinCaddyPlugin) FromApp(app *SouinApp) error {
 		if dc.Headers == nil {
 			s.Configuration.DefaultCache.Headers = appDc.Headers
 		}
-		if dc.TTL == "" {
+		if dc.TTL == 0 {
 			s.Configuration.DefaultCache.TTL = appDc.TTL
 		}
 		if dc.Olric.URL == "" || dc.Olric.Path == "" || dc.Olric.Configuration == nil {
@@ -230,7 +231,10 @@ func parseCaddyfileGlobalOption(h *caddyfile.Dispenser, _ interface{}) (interfac
 				cfg.DefaultCache.Olric = provider
 			case "ttl":
 				args := h.RemainingArgs()
-				cfg.DefaultCache.TTL = args[0]
+				ttl, err := time.ParseDuration(args[0])
+				if err == nil {
+					cfg.DefaultCache.TTL = ttl
+				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootOption)
 			}
@@ -257,7 +261,10 @@ func parseCaddyfileHandlerDirective(h httpcaddyfile.Helper) (caddyhttp.Middlewar
 		case "headers":
 			sc.DefaultCache.Headers = h.RemainingArgs()
 		case "ttl":
-			sc.DefaultCache.TTL = h.RemainingArgs()[0]
+			ttl, err := time.ParseDuration(h.RemainingArgs()[0])
+			if err == nil {
+				sc.DefaultCache.TTL = ttl
+			}
 		}
 	}
 

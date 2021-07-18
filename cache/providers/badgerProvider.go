@@ -68,12 +68,7 @@ func (provider *Badger) Get(key string) []byte {
 // Set method will store the response in Badger provider
 func (provider *Badger) Set(key string, value []byte, url t.URL, duration time.Duration) {
 	if duration == 0 {
-		ttl, err := time.ParseDuration(url.TTL)
-		if err != nil {
-			ttl = 0
-			fmt.Println(err)
-		}
-		duration = ttl
+		duration = url.TTL
 	}
 
 	err := provider.DB.Update(func(txn *badger.Txn) error {
